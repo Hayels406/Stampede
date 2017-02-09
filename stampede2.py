@@ -20,12 +20,13 @@ from pylab import savefig
 
 #Parameters from command line
 
-TF = 50.                     # Final time
+
+TF = 500.                     # Final time
 iterations = 1                # Number of iterations of the simulation
 TSCREEN = 10                  # Screen update interval
 dt = 1.                    # Time step
 SAVE = TF/dt                  # Interval to save to file
-NP = 100                      # Number of sheep
+NP = 100                     # Number of sheep
 np.random.seed()
 
 # Setting up arrays to save data in
@@ -64,7 +65,7 @@ def change_theta(behavioural_vector):
     still = (behaviour == 0)
     walking = (behaviour == 1)
     running = (behaviour == 2)
-    orientation = still*theta + theta_walking(tree, position, xxt, theta)*walking + theta_running(index_neighbours, xxp, xxt, position)*running
+    orientation = still*theta + theta_walking(tree, position, xxt, theta)*walking + theta_running(index_neighbours, xxp, xxt, position, theta)*running
     return orientation;
 
 def theta_walking(KDtree, positions_real_sheep, thetas_ghosts, theta_real_sheep):
@@ -80,83 +81,27 @@ def theta_walking(KDtree, positions_real_sheep, thetas_ghosts, theta_real_sheep)
     mean_theta = mean_theta + phi
     return mean_theta;
 
-def theta_running(idx_all, positions_ghosts, thetas_ghosts, positions_real_sheep):
-    def f(dist, r_equ):
-        f_r = min(1.0, (dist - r_equ)/r_equ)
-        return f_r;
-
-    def distance(index):
-        dist = np.sqrt(np.sum(((position[index] - xxp[index_neighbours[index]])**2),1))
-        return dist;
-
-
-    def betaF(dist, r_equ):
-        betaF1 = np.array(map(lambda x:beta*f(x, r_equ), dist))
-        betaF2 = betaF1.reshape((len(betaF1), 1))
-        return betaF2;
-
-    betaGuy = map(lambda x:betaF(distance(x),r_e)*(np.divide(xxp[index_neighbours[x]] - position[x],np.transpose(np.tile(distance(x), 2).reshape((2,len(distance(x))))))), range(NP))
-    trg = map(lambda x:map(list, zip(*[np.cos(xxt[x]), np.sin(xxt[x])])), index_neighbours)
-    X,Y = map(list, zip(*map(lambda x,y:((x+y).mean(axis = 0)).tolist(), trg, betaGuy)))
-    mean_theta = np.arctan2(Y,X)
+def theta_running(idx, positions_ghosts, thetas_ghosts, positions_real_sheep, theta_real_sheep):
+    mean_theta = np.zeros(NP)
+    for i in xrange(0,NP):
+        dumidx = idx[i]
+        if len(dumidx) > 0: # Some neighbours
+            y = (thetas_ghosts[dumidx] == 2.)*np.sin(thetas_ghosts[dumidx]) + beta*np.fmin(1, np.array([np.sqrt(sum(z)) for z in (positions_real_sheep[i] - positions_ghosts[dumidx])**2]))*(positions_ghosts[dumidx] - positions_real_sheep[i])[:,1]
+            x = (thetas_ghosts[dumidx] == 2.)*np.cos(thetas_ghosts[dumidx]) + beta*np.fmin(1, np.array([np.sqrt(sum(z)) for z in (positions_real_sheep[i] - positions_ghosts[dumidx])**2]))*(positions_ghosts[dumidx] - positions_real_sheep[i])[:,0]
+            mean_theta[i] = np.arctan2(y.mean(),x.mean())
+        else:               # No neighbours
+            mean_theta[i] = theta_real_sheep[i]
     return mean_theta;
 
-def change_behaviour(behavioural_vector):
-    new_behav = np.zeros(NP)
-    for i in range(len(behavioural_vector)):
-        b = behavioural_vector[i]
-        if b == 0.:
-            #print i, b, ([(1-(p01(tree, position[i], i) + p012(position[i], index_neighbours[i], i))), p01(tree, position[i], i), p012(position[i], index_neighbours[i], i)])
-            new_behav[i] = behaviour[i] #np.random.choice(np.arange(0,3), p =[(1-(p01(tree, position[i], i) + p012(position[i], index_neighbours[i], i))), p01(tree, position[i], i), p012(position[i], index_neighbours[i], i)])
-        elif b == 1.:
-            #print i, b, ([p10(tree, position[i], i), (1-(p10(tree, position[i], i) + p012(position[i], index_neighbours[i], i))), p012(position[i], index_neighbours[i], i)])
-            new_behav[i] = behaviour[i] #np.random.choice(np.arange(0,3), p =[p10(tree, position[i], i), (1-(p10(tree, position[i], i) + p012(position[i], index_neighbours[i], i))), p012(position[i], index_neighbours[i], i)])
-        else:
-            #print i, b, ([p20(index_neighbours[i], i), 0, (1-p20(index_neighbours[i], i))])
-            new_behav[i] = behaviour[i] #np.random.choice(np.arange(0,3), p =[p20(index_neighbours[i], i), 0, 1-p20(index_neighbours[i], i)])
-            #if new_behav[i] == 0:
-            #    stopped[i::NP] == 1
-    return new_behav
-
-def p01(KDTree, position_real_sheep, index):
-    neighbours = tree.query_radius(position_real_sheep, r_0)[0]
-    neighbours = neighbours[neighbours != (4*NP + index)]
-    n_1 = sum(xxb[neighbours] == 1)
-    prob01 = (1. + alpha*n_1)/(tau01)
-    prob01 = 1. - np.exp(-1.*prob01*dt)
-    return prob01
-
-def p10(KDTree, position_real_sheep, index):
-    neighbours = tree.query_radius(position_real_sheep, r_0)[0]
-    neighbours = neighbours[neighbours != (4*NP + index)]
-
-    n_0 = sum(xxb[neighbours] == 0)
-    prob10 = (1. + alpha*n_0)/(tau10)
-
-    prob10 = 1. - np.exp(-1.*prob10*dt)
-    return prob10
-
-def p012(position_real_sheep, idx, index):
-    m_R = sum((xxb[idx]==2))
-    mean_dist = np.sqrt((xxp[index_neighbours[index]][:,0] - np.tile(position[index][0],len(index_neighbours[index])))**2 + (xxp[index_neighbours[index]][:,1] - np.tile(position[index][1],len(index_neighbours[index])))**2).mean()
-    prob012 = (1./tau012)*(mean_dist*(1. + alpha*m_R)/d_R)**delta
-    prob012 = 1. - np.exp(-1.*prob012*dt)
-    return prob012
-
-def p20(idx, index):
-    m_S = sum(stopped[idx])
-    mean_dist = np.sqrt((xxp[index_neighbours[index]][:,0] - np.tile(position[index][0],len(index_neighbours[index])))**2 + (xxp[index_neighbours[index]][:,1] - np.tile(position[index][1],len(index_neighbours[index])))**2).mean()
-    prob20 = (1./tau20)*((1.+ alpha*m_S)*d_S/mean_dist)**delta
-    prob20 = 1. - np.exp(-1.*prob20*dt)
-    return prob20
 
 for l in xrange(iterations):
+    print NP
     plt.close()
     ## Sheep parameters
     v_1 = 0.15
     v_2 = 1.50
-    r_0 = 1
-    r_e = 1
+    r_0 = 1.0
+    r_e = 1.0
     eta = 0.13
     beta = 0.8
     alpha = 13
@@ -172,7 +117,7 @@ for l in xrange(iterations):
 
     ## Aux parameters
     pi = math.pi
-    NX = 50             # Resolution in x
+    NX = 80             # Resolution in x
     NY = NX             # Resolution in y
     t = 0.0             # Time starts at 0
     show = False        # Show plots to screen
@@ -188,11 +133,10 @@ for l in xrange(iterations):
         #sys.stdout.flush()
 
     ## Initialise particles
-    position = np.random.rand(NP, 2)*NX/10. + 4.5*NX/10.       # Setting x and y for each sheep
-    theta = np.random.rand(NP)#*2*pi           # Seting theta for each sheep
-    behaviour = np.zeros(NP)#np.random.randint(0, 3, NP)   # Setting the behavioural states
+    position = np.random.rand(NP, 2)*NX/10.0 + 4.5*NX/10.0       # Setting x and y for each sheep
+    theta = np.random.rand(NP)*2*pi           # Seting theta for each sheep
+    behaviour = 2*np.ones(NP)#np.random.randint(0, 3, NP)   # Setting the behavioural states
 
-    print behaviour
     np.random.seed(0)
 
     while (round(t, 3) < TF):
@@ -221,19 +165,49 @@ for l in xrange(iterations):
         # Create KD Tree
         tree = KDTree(xxp)
 
-        # Create Vor teselation
-        vor = Voronoi(xxp)
-        index_neighbours = map(lambda x:np.array([t[1] for t in [(b, a) for a, b in vor.ridge_dict.keys()] + vor.ridge_dict.keys() if t[0] == x]), range(4*NP, 5*NP)) #Calculates the Voronoi neighbours
+        # Create idx
+        dist, idx = tree.query(position, 2)
+        idx = idx[:, 1:2]
+        #mean_theta = np.arctan2(np.sin(xxt[idx]).mean(axis=1), np.cos(xxt[idx]).mean(axis = 1))
 
+
+        vor = Voronoi(xxp)
+        index_neighbours = map(lambda x:[t[1] for t in [(b, a) for a, b in vor.ridge_dict.keys()] + vor.ridge_dict.keys() if t[0] == x], range(4*NP, 5*NP)) #Calculates the Voronoi neighbours
+
+        #beta*np.fmin(1, np.array([np.sqrt(sum(z)) for z in (position[0] - xxp[index_neighbours[0]])**2]))
+
+        #y = sin + beta
+        #x = cos + beta
+        #betaGuy = map(lambda x,y:(np.multiply((beta*np.fmin(1, [np.sqrt(sum(z)) for z in (y - xxp[x])**2])).reshape((len(x), 1)),(xxp[x] - y))), index_neighbours, position)
+        #map(lambda x,pos:(np.sin(xxt[x]) + beta*np.fmin(1, [np.sqrt(sum(z)) for z in (pos - xxp[x])**2])), index_neighbours, position)
+
+        def f(dist, r_equ):
+            f_r = min(1.0, (dist - r_equ)/r_equ)
+            return f_r;
+
+        def distance(index):
+            dist = np.sqrt(np.sum(((position[index] - xxp[index_neighbours[index]])**2),1))
+            return dist;
+
+
+        def betaF(dist, r_equ):
+            betaF1 = np.array(map(lambda x:beta*f(x, r_equ), dist))
+            betaF2 = betaF1.reshape((len(betaF1), 1))
+            return betaF2;
+
+        betaGuy = map(lambda x:betaF(distance(x),r_e)*(np.divide(xxp[index_neighbours[x]] - position[x],np.transpose(np.tile(distance(x), 2).reshape((2,len(distance(x))))))), range(NP))
+        trg = map(lambda x:map(list, zip(*[np.cos(xxt[x]), np.sin(xxt[x])])), index_neighbours)
+        X,Y = map(list, zip(*map(lambda x,y:((x+y).mean(axis = 0)).tolist(), trg, betaGuy)))
+        mean_theta = np.arctan2(Y,X)
+
+        #mean_theta = np.array(map(lambda x:(np.arctan2(np.sin(xxt[x]).mean(), np.cos(xxt[x]).mean())), index_neighbours))
 
         # Update angle
-        theta = change_theta(behaviour)
+        theta = mean_theta
 
         # Update behaviour
         #behaviour = change_behaviour(behaviour)
 
-
-        print behaviour
 
         # Ploting (Delete later)
         x = position[:, 0]
@@ -242,7 +216,7 @@ for l in xrange(iterations):
         ytheta = np.sin(np.squeeze(theta[:]))
         if t == 0.0:
             plt.figure()
-            q = plt.quiver(x, y, xtheta, ytheta, scale = 20)
+            q = plt.quiver(x, y, xtheta, ytheta, scale = 40)
             plt.xlim(0, NX)
             plt.ylim(0, NY)
             plt.axes().set_aspect('equal')
