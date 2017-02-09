@@ -96,7 +96,7 @@ def theta_running(idx_all, positions_ghosts, thetas_ghosts, positions_real_sheep
         return betaF2;
 
     betaGuy = map(lambda x:betaF(distance(x),r_e)*(np.divide(xxp[index_neighbours[x]] - position[x],np.transpose(np.tile(distance(x), 2).reshape((2,len(distance(x))))))), range(NP))
-    trg = map(lambda x:map(list, zip(*[np.cos(xxt[x]), np.sin(xxt[x])]))*(xxb[x] == 2.).reshape((5,1)), index_neighbours)
+    trg = map(lambda x:map(list, zip(*[np.cos(xxt[x])*(xxb[x] ==2), np.sin(xxt[x])*(xxb[x] == 2)])), index_neighbours)
     X,Y = map(list, zip(*map(lambda x,y:((x+y).mean(axis = 0)).tolist(), trg, betaGuy)))
     mean_theta = np.arctan2(Y,X)
     return mean_theta;

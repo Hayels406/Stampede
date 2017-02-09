@@ -20,10 +20,10 @@ from pylab import savefig
 
 #Parameters from command line
 
-TF = 50.                     # Final time
+TF = 50.                      # Final time
 iterations = 1                # Number of iterations of the simulation
 TSCREEN = 10                  # Screen update interval
-dt = 1.                    # Time step
+dt = 1.                       # Time step
 SAVE = TF/dt                  # Interval to save to file
 NP = 100                      # Number of sheep
 np.random.seed()
@@ -54,20 +54,14 @@ xxb = np.zeros(9*NP)
 #    os.makedirs(direct+str(a)+'urms')
 
 def v(behavioural_vector):
-    still = (behaviour == 0)
-    walking = (behaviour == 1)
-    running = (behaviour == 2)
-    speed = 0.0*still + v_1*walking + v_2*running
+    speed = 0.0*(behaviour == 0) + v_1*(behaviour == 1) + v_2*(behaviour == 2)
     return speed;
 
 def change_theta(behavioural_vector):
-    still = (behaviour == 0)
-    walking = (behaviour == 1)
-    running = (behaviour == 2)
-    orientation = still*theta + theta_walking(tree, position, xxt, theta)*walking + theta_running(index_neighbours, xxp, xxt, position)*running
+    orientation = (behaviour == 0)*theta + theta_walking(position, xxt, theta)*(behaviour == 1) + theta_running(index_neighbours, xxp, xxt, position)*(behaviour == 2)
     return orientation;
 
-def theta_walking(KDtree, positions_real_sheep, thetas_ghosts, theta_real_sheep):
+def theta_walking(positions_real_sheep, thetas_ghosts, theta_real_sheep):
     mean_theta = np.zeros(NP)
     idx = tree.query_radius(positions_real_sheep, r_0) # find neighbour ids for neighbours within radius
     for i in xrange(0,NP):
@@ -96,7 +90,7 @@ def theta_running(idx_all, positions_ghosts, thetas_ghosts, positions_real_sheep
         return betaF2;
 
     betaGuy = map(lambda x:betaF(distance(x),r_e)*(np.divide(xxp[index_neighbours[x]] - position[x],np.transpose(np.tile(distance(x), 2).reshape((2,len(distance(x))))))), range(NP))
-    trg = map(lambda x:map(list, zip(*[np.cos(xxt[x]), np.sin(xxt[x])]))*(xxb[x] == 2.).reshape((5,1)), index_neighbours)
+    trg = map(lambda x:map(list, zip(*[np.cos(xxt[x])*(xxb[x] ==2), np.sin(xxt[x])*(xxb[x] == 2)])), index_neighbours)
     X,Y = map(list, zip(*map(lambda x,y:((x+y).mean(axis = 0)).tolist(), trg, betaGuy)))
     mean_theta = np.arctan2(Y,X)
     return mean_theta;
