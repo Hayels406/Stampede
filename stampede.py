@@ -20,7 +20,7 @@ from pylab import savefig
 
 #Parameters from command line
 
-TF = 50.                      # Final time
+TF = 100.                      # Final time
 iterations = 1                # Number of iterations of the simulation
 TSCREEN = 10                  # Screen update interval
 dt = 1.                       # Time step
@@ -100,16 +100,38 @@ def change_behaviour(behavioural_vector):
     for i in range(len(behavioural_vector)):
         b = behavioural_vector[i]
         if b == 0.:
-            #print i, b, ([(1-(p01(tree, position[i], i) + p012(position[i], index_neighbours[i], i))), p01(tree, position[i], i), p012(position[i], index_neighbours[i], i)])
-            new_behav[i] = behaviour[i] #np.random.choice(np.arange(0,3), p =[(1-(p01(tree, position[i], i) + p012(position[i], index_neighbours[i], i))), p01(tree, position[i], i), p012(position[i], index_neighbours[i], i)])
+            b1 = np.random.choice(np.arange(0,2), p =[(1-p01(tree, position[i], i)), p01(tree, position[i], i)])
+            b2 = np.random.choice(2*np.arange(0,2), p =[(1-p012(position[i], index_neighbours[i], i)), p012(position[i], index_neighbours[i], i)])
+            if b1 == 1 and b2 == 2:
+                new_behav[i] = np.random.choice(2*np.arange(0,2), p = [0.5, 0.5])
+            elif b1 == 1:
+                new_behav[i] = 1
+            elif b2 == 2:
+                new_behav[i] = 2
+            else:
+                new_behav[i] = 0
+            if stopped[i] == 1:
+                stopped[i::NP] = 0
         elif b == 1.:
-            #print i, b, ([p10(tree, position[i], i), (1-(p10(tree, position[i], i) + p012(position[i], index_neighbours[i], i))), p012(position[i], index_neighbours[i], i)])
-            new_behav[i] = behaviour[i] #np.random.choice(np.arange(0,3), p =[p10(tree, position[i], i), (1-(p10(tree, position[i], i) + p012(position[i], index_neighbours[i], i))), p012(position[i], index_neighbours[i], i)])
+            b0 = np.random.choice(np.arange(0,2), p =[p10(tree, position[i], i), 1-p10(tree, position[i], i)])
+            b2 = np.random.choice(np.arange(1,3), p =[(1-p012(position[i], index_neighbours[i], i)), p012(position[i], index_neighbours[i], i)])
+            if b0 == 0 and b2 == 2:
+                new_behav[i] = np.random.choice(2*np.arange(0,2), p = [0.5, 0.5])
+            elif b0 == 0:
+                new_behav[i] = 0
+            elif b2 == 2:
+                new_behav[i] = 2
+            else:
+                new_behav[i] = 1
+            if new_behav[i] == 0:
+                stopped[i::NP] = 1
         else:
-            #print i, b, ([p20(index_neighbours[i], i), 0, (1-p20(index_neighbours[i], i))])
-            new_behav[i] = behaviour[i] #np.random.choice(np.arange(0,3), p =[p20(index_neighbours[i], i), 0, 1-p20(index_neighbours[i], i)])
-            #if new_behav[i] == 0:
-            #    stopped[i::NP] == 1
+            new_behav[i] = np.random.choice(2*np.arange(0,2), p =[p20(index_neighbours[i], i), 1-p20(index_neighbours[i], i)])
+            if new_behav[i] == 0:
+                print p20(index_neighbours[i], i)
+            if new_behav[i] == 0:
+                stopped[i::NP] = 1
+
     return new_behav
 
 def p01(KDTree, position_real_sheep, index):
@@ -183,8 +205,8 @@ for l in xrange(iterations):
 
     ## Initialise particles
     position = np.random.rand(NP, 2)*NX/10. + 4.5*NX/10.       # Setting x and y for each sheep
-    theta = np.random.rand(NP)*2*pi           # Seting theta for each sheep
-    behaviour = 2*np.ones(NP)#np.random.randint(0, 3, NP)   # Setting the behavioural states
+    theta = np.random.rand(NP)#*2*pi           # Seting theta for each sheep
+    behaviour = np.ones(NP)#np.random.randint(0, 3, NP)   # Setting the behavioural states
 
     np.random.seed(0)
 
@@ -223,7 +245,7 @@ for l in xrange(iterations):
         theta = change_theta(behaviour)
 
         # Update behaviour
-        #behaviour = change_behaviour(behaviour)
+        behaviour = change_behaviour(behaviour)
 
 
         # Ploting (Delete later)
@@ -233,13 +255,19 @@ for l in xrange(iterations):
         ytheta = np.sin(np.squeeze(theta[:]))
         if t == 0.0:
             plt.figure()
-            q = plt.quiver(x, y, xtheta, ytheta, scale = 20)
+            q = plt.quiver(x[behaviour == 0], y[behaviour == 0], xtheta[behaviour == 0], ytheta[behaviour == 0], scale = 20, color = 'black')
+            r = plt.quiver(x[behaviour == 1], y[behaviour == 1], xtheta[behaviour == 1], ytheta[behaviour == 1], scale = 20, color = 'blue')
+            s = plt.quiver(x[behaviour == 2], y[behaviour == 2], xtheta[behaviour == 2], ytheta[behaviour == 2], scale = 20, color = 'red')
             plt.xlim(0, NX)
             plt.ylim(0, NY)
             plt.axes().set_aspect('equal')
         if t > 0.0:
-    	    q.set_offsets(np.transpose([x, y]))
-    	    q.set_UVC(xtheta,ytheta)
+    	    q.set_offsets(np.transpose([x[behaviour == 0], y[behaviour == 0]]))
+    	    q.set_UVC(xtheta[behaviour == 0],ytheta[behaviour == 0])
+            r.set_offsets(np.transpose([x[behaviour == 1], y[behaviour == 1]]))
+    	    r.set_UVC(xtheta[behaviour == 1],ytheta[behaviour == 1])
+            s.set_offsets(np.transpose([x[behaviour == 2], y[behaviour == 2]]))
+    	    s.set_UVC(xtheta[behaviour == 2],ytheta[behaviour == 2])
 	    #savefig('/data/b1033128/Stampede/Animation/frame'+str(itime).zfill(6) +'.png') #plt.pause(0.05)
         plt.pause(0.05)
 

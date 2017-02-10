@@ -197,7 +197,7 @@ for l in xrange(iterations):
 
         betaGuy = map(lambda x:betaF(distance(x),r_e)*(np.divide(xxp[index_neighbours[x]] - position[x],np.transpose(np.tile(distance(x), 2).reshape((2,len(distance(x))))))), range(NP))
         trg = map(lambda x:map(list, zip(*[np.cos(xxt[x])*(xxb[x] ==2), np.sin(xxt[x])*(xxb[x] == 2)])), index_neighbours)
-        X,Y = map(list, zip(*map(lambda x,y:((x+y).mean(axis = 0)).tolist(), trg, betaGuy)))
+        X,Y = map(list, zip(*map(lambda x,y:((y).mean(axis = 0)).tolist(), trg, betaGuy)))
         mean_theta = np.arctan2(Y,X)
 
         #mean_theta = np.array(map(lambda x:(np.arctan2(np.sin(xxt[x]).mean(), np.cos(xxt[x]).mean())), index_neighbours))
