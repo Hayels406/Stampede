@@ -1,8 +1,8 @@
 import numpy as np
 from scipy.stats import itemfreq
 import math
-#import matplotlib as mpl
-#mpl.use('Agg')
+import matplotlib as mpl
+mpl.use('Agg')
 import matplotlib.pyplot as plt
 import os
 from matplotlib import rc
@@ -17,19 +17,19 @@ from pylab import savefig
 ###Parameters
 ###########################################################
 
-
-#Parameters from command line
-
-TF = 1200#2.*10**5                      # Final time
+## Aux parameters
+TF = 2.*10**5                 # Final time
 iterations = 1                # Number of iterations of the simulation
 TSCREEN = 10                  # Screen update interval
 dt = 1.                       # Time step
-SAVE = TF/dt                  # Interval to save to file
 NP = 100                      # Number of sheep
+pi = math.pi
+NX = 100             # Resolution in x
+NY = NX             # Resolution in y
+t = 0.0             # Time starts at 0
+
 np.random.seed()
 
-# Setting up arrays to save data in
-#gorder = np.zeros([iterations,(int(TF/(TSCREEN*dt)))])
 
 ## Sheep parameters
 v_1 = 0.15
@@ -47,12 +47,6 @@ tau10 = 35.
 tau012 = 100
 tau20 = 100
 
-## Aux parameters
-pi = math.pi
-NX = 100             # Resolution in x
-NY = NX             # Resolution in y
-t = 0.0             # Time starts at 0
-show = False        # Show plots to screen
 
 # # Setting up directory to save to
 # if runOn == 'server':
@@ -307,8 +301,8 @@ for l in xrange(iterations):
             #mean_y = y.mean()
             #plt.xlim(mean_x - 20., mean_x + 20.)
             #plt.ylim(mean_y - 20., mean_y + 20.)
-	#savefig('/data/b1033128/Stampede/Animation/frame'+str(itime).zfill(6) +'.png') #plt.pause(0.05)
-        plt.pause(0.05)
+	savefig('/data/b1033128/Stampede/Animation/frame'+str(itime).zfill(6) +'.png') 
+        #plt.pause(0.05)
 
         t = t + dt;             # updating time
         itime = itime + 1;      # updating the iteger time (number of time steps done)
