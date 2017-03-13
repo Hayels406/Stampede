@@ -17,10 +17,10 @@ plt.close()
 ###Parameters
 ###########################################################
 
-TF = 0.5                       # Final time
+TF = 500                       # Final time
 TSCREEN = 10                  # Screen update interval
-dt = 0.01                    # Time step
-NP = 400                      # Number of sheep
+dt = 1.                    # Time step
+NP = 400                     # Number of sheep
 np.random.seed()
 
 ## Aux parameters
@@ -34,55 +34,99 @@ itime = 0
 ## Simulation parameters
 a = 1.
 b = 0.2
-c = 0.4
+c = float(sys.argv[1])
 p = 3.
 
+if c == 0.15:
+    A = 0.00005
+if c == 0.4:
+    A = 0.01
+if c == 0.8:
+    A = 0.001
+if c == 1.5:
+    A == 0.01
+
+
 ## Fuctions
-def velocityPrey(index):
+def velocityPreyIndex(index, postPrey, postPred):
     def innerSumFunc(index_j, index_k):
-        #print (positionPrey[index_j] - positionPrey[index_k])/(((positionPrey[index_j] - positionPrey[index_k])**2).sum()) - a*(positionPrey[index_j] - positionPrey[index_k])
-        return (positionPrey[index_j] - positionPrey[index_k])/(((positionPrey[index_j] - positionPrey[index_k])**2).sum()) - a*(positionPrey[index_j] - positionPrey[index_k])
+        return (postPrey[index_j] - postPrey[index_k])/(((postPrey[index_j] - postPrey[index_k])**2).sum()) - a*(postPrey[index_j] - postPrey[index_k])
 
     innersum = np.array(map(lambda x:innerSumFunc(index, x), np.delete(range(NP), index, 0))).sum(axis = 0)
-    vel = (1./NP)*innersum + b*(positionPrey[index] - positionPred)/(((positionPrey[index] - positionPred)**2).sum())
+    vel = (1./NP)*innersum + b*(postPrey[index] - postPred)/np.sqrt(((postPrey[index] - postPred)**2).sum())
     return vel.tolist()[0];
 
-positionPrey = np.random.rand(NP, 2)          # Setting x and y for each prey
+#def velocityPrey(posPrey, posPred):
+#    return np.array(map(lambda x:velocityPreyIndex(x, posPrey, posPred), range(NP)));
+
+def velocityPrey(posPrey, posPred):
+    #map(lambda j:((positionPrey[j] - np.delete(positionPrey, j, 0))*np.transpose(np.tile(np.linalg.norm(positionPrey[j] - np.delete(positionPrey, j, 0), axis = 1)**(-2) - a, (2,1))).sum(axis = 0))/NP + b*(positionPrey[j] - positionPred)/np.linalg.norm(positionPrey[j] - positionPred)**2, range(NP))
+    return np.array(map(lambda j:(((posPrey[j] - np.delete(posPrey, j, 0))*np.transpose(np.tile(np.linalg.norm(posPrey[j] - np.delete(posPrey, j, 0), axis = 1)**(-2) - a, (2,1)))).sum(axis = 0)/NP + b*(posPrey[j] - posPred)/np.linalg.norm(posPrey[j] - posPred)**2)[0].tolist(), range(NP)));
+
+
+def velocityPred(posPrey, posPred):
+    vel = (c/NP)*((posPrey - posPred)/np.transpose(np.tile(np.linalg.norm(posPrey - posPred,axis=1)**p + A,(2,1)))).sum(axis = 0)
+    return vel;
+
+np.random.seed(0)
+positionPrey = np.random.rand(NP, 2)
+posPrey = np.random.rand(NP)*2*pi
+if c != 0.4:
+    positionPrey[:,0] = (0.7+0.3*np.random.rand(NP))*np.cos(posPrey)
+    positionPrey[:,1] = (0.7+0.3*np.random.rand(NP))*np.sin(posPrey)
+       # Setting x and y for each prey np.array([[0.4, 0.6], [0.5, 0.8]])#
 #positionPred = np.random.rand( 1, 2)          # Setting x and y for the predator
 
 #positionPrey = np.array([[0, 0.2], [0.3, 0.1], [1., 0.8], [0.2, 0.7], [0.2, 0.1]])
-positionPred = np.array([[0.5, 0.6]])
+positionPred = np.array([[0., -0.]])
 
 while (round(t, 3) < TF):
     print t
     #Update positionPrey
-    dpreydt = np.array(map(lambda x:velocityPrey(x), range(NP)))
-    dpreddt = (c/NP)*((positionPrey - positionPred)/(np.transpose(np.tile(((positionPrey - positionPred)**p).sum(axis = 1),2).reshape((2,NP))))).sum(axis = 0)
+    #dpreydt = velocityPrey(positionPrey, positionPred)
+    #dpreddt = velocityPred(positionPrey, positionPred)
 
     positionPreyOld = positionPrey
     positionPredOld = positionPred
 
-    positionPrey = positionPrey + dpreydt*dt
-    positionPred = positionPred + dpreddt*dt
+    #Euler method
+    #positionPrey = positionPrey + dpreydt*dt
+    #positionPred = positionPred + dpreddt*dt
 
+    #Runga-Kutta method
+    k1 = velocityPrey(positionPrey, positionPred)
+    k2 = velocityPrey(positionPrey + (dt/2)*k1, positionPred)
+    k3 = velocityPrey(positionPrey + (dt/2)*k2, positionPred)
+    k4 = velocityPrey(positionPrey + dt*k3, positionPred)
+    positionPrey = positionPrey + (dt/6)*(k1 + 2*k2 + 2*k3 + k4)
+
+    kPred1 = velocityPred(positionPrey, positionPred)
+    kPred2 = velocityPred(positionPrey, positionPred + (dt/2)*kPred1)
+    kPred3 = velocityPred(positionPrey, positionPred + (dt/2)*kPred2)
+    kPred4 = velocityPred(positionPrey, positionPred + dt*kPred3)
+    positionPred = positionPred + (dt/6)*(kPred1 + 2*kPred2 + 2*kPred3 + kPred4)
+
+    meanPositionPrey = positionPrey.mean(axis = 0)
     # Ploting (Delete later)
     x = positionPrey[:, 0]
     y = positionPrey[:, 1]
-    theta = np.arctan2(positionPreyOld[:, 1] - positionPrey[:, 1], positionPreyOld[:, 0] - positionPrey[:, 0]) + pi
-    thetaPred = np.arctan2(positionPredOld[:, 1] - positionPred[:, 1], positionPredOld[:, 0] - positionPred[:, 0]) + pi
+    theta = np.arctan2(positionPrey[:, 1] - positionPreyOld[:, 1], positionPrey[:, 0] - positionPreyOld[:, 0])
+    thetaPred = np.arctan2(positionPred[:, 1] - positionPredOld[:, 1], positionPred[:, 0] - positionPredOld[:, 0])
     xtheta = np.cos(theta)
     ytheta = np.sin(theta)
-    #print np.arctan2(ytheta, xtheta)
     if t == 0.0:
         plt.figure()
         q = plt.quiver(x, y, xtheta, ytheta, scale = 30)#, xtheta, ytheta, scale = 30, color = 'black')
         r = plt.quiver(positionPred[:,0], positionPred[:,1], np.cos(thetaPred), np.sin(thetaPred), color = 'red', scale = 30)
+        #plt.plot(meanPositionPrey[0], meanPositionPrey[1], 'bo')
         #plt.xlim(NX/2. - 250, NX/2. + 250)
         #plt.ylim(NY/2. - 250, NY/2. + 250)
-        plt.xlim(-1.5, 2.5)
-        plt.ylim(-1.5, 2.5)
+        plt.xlim(meanPositionPrey[0]-1.5, meanPositionPrey[0]+1.5)
+        plt.ylim(meanPositionPrey[1]-1.5, meanPositionPrey[1]+1.5)
         plt.axes().set_aspect('equal')
-    if t > 0.0:
+    if itime%2 == 0:
+        plt.xlim(meanPositionPrey[0]-1.5, meanPositionPrey[0]+1.5)
+        plt.ylim(meanPositionPrey[1]-1.5, meanPositionPrey[1]+1.5)
         q.set_offsets(np.transpose([x, y]))
         q.set_UVC(xtheta,ytheta)
         r.set_offsets(np.transpose([positionPred[:,0], positionPred[:,1]]))
@@ -91,7 +135,7 @@ while (round(t, 3) < TF):
         #mean_y = y.mean()
         #plt.xlim(mean_x - 20., mean_x + 20.)
         #plt.ylim(mean_y - 20., mean_y + 20.)
-    plt.pause(0.05)
+    plt.pause(0.005)
 
     t = t + dt
     itime = itime + 1
