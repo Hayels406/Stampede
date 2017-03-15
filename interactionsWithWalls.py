@@ -61,11 +61,30 @@ def f_ij(posi, posj, distij, ri, rj):
 
 def f_iw(posi, ri, w):
     #w in the form [a, b, c] where ax + by + c = 0 is the equation for the wall
-    [a,b,c] = w
-    dist_iw = abs(a*posi[0] + b*posi[1] + c)/np.sqrt(a**2 + b**2)
-    wall_point = [(b*(b*posi[0] - a*posi[1]) - a*c)/(a**2 + b**2), (-a*(b*posi[0] - a*posi[1]) - b*c)/(a**2 + b**2)]
-    n_iw = (posi - wall_point)/dist_iw
-    f = np.array((A[0]*np.exp((ri - dist_iw)/B[0]))*n_iw)
+    [ty,a,b,c] = w
+    if ty == 's':
+        dist_iw = abs(a*posi[0] + b*posi[1] + c)/np.sqrt(a**2 + b**2)
+        wall_point = [(b*(b*posi[0] - a*posi[1]) - a*c)/(a**2 + b**2), (-a*(b*posi[0] - a*posi[1]) - b*c)/(a**2 + b**2)]
+        n_iw = (posi - wall_point)/dist_iw
+        f = np.array((A[0]*np.exp((ri - dist_iw)/B[0]))*n_iw)
+    elif ty == 'c':
+        dist_iw = np.zeros(4)
+        wall_point = np.zeros((4, 2))
+        n_iw = np.zeros(4)
+        PC = posi - np.array([a, b])
+        dist_iw[0] = abs(np.sqrt(((PC)**2).sum()) - c)
+        dist_iw[1] = 2*c - dist_iw[0]
+        dist_iw[2] = np.sqrt(dist_iw[1]*(2*c - dist_iw[1]))
+        dist_iw[3] = dist_iw[2]
+        theta = np.arctan2(PC[1], PC[0])
+        phi = theta - pi/2.
+        wall_point[0] = [a + c*np.cos(theta), b + c*np.sin(theta)]
+        wall_point[1] = [a - c*np.cos(theta), b - c*np.sin(theta)]
+        wall_point[2] = [posi[0] - dist_iw[3]*np.cos(phi), posi[1] - dist_iw[3]*np.sin(phi)]
+        wall_point[3] = [posi[0] + dist_iw[3]*np.cos(phi), posi[1] + dist_iw[3]*np.sin(phi)]
+        n_iw = (np.tile(posi, (4,1)) - wall_point)/dist_iw.reshape(4,1)
+        f = np.transpose(np.tile((A[0]*np.exp((ri - dist_iw)/B[0])), (2,1)))*n_iw
+        f = f.mean(axis = 0)
     return(f)
 
 def distance(pos):
@@ -89,7 +108,7 @@ v = np.transpose(np.array([np.cos(theta), np.sin(theta)]))
 r = np.random.rand(NP)/10 + 0.25#np.array([0.2, 0.4, 0.3])#
 t_matrix = np.zeros((NP, NP, 2))
 
-walls = [[1, 0, -12], [0, 1, -12], [1, 0, 2], [0, 1, 2]]
+walls = [['s', 1, 0, -12], ['s', 0, 1, -12], ['s', 1, 0, 2], ['s', 0, 1, 2]]#[['c',5,5,9]]#
 
 while (round(t, 3) < TF):
     print t
@@ -106,6 +125,8 @@ while (round(t, 3) < TF):
         plt.plot([-2, -2], [-2, 12], lw = 4, color = 'red')
         plt.plot([-2, 12], [12, 12], lw = 4, color = 'red')
         plt.plot([12, 12], [-2, 12], lw = 4, color = 'red')
+        #circle1=plt.Circle((walls[0][1],walls[0][2]),walls[0][3],color='r',fill = False)
+        #plt.gcf().gca().add_artist(circle1)
         q = plt.quiver(x, y, xtheta, ytheta, scale = 30)#, xtheta, ytheta, scale = 30, color = 'black')
         #plt.xlim(NX/2. - 250, NX/2. + 250)
         #plt.ylim(NY/2. - 250, NY/2. + 250)
@@ -120,6 +141,7 @@ while (round(t, 3) < TF):
         #plt.xlim(mean_x - 20., mean_x + 20.)
         #plt.ylim(mean_y - 20., mean_y + 20.)
     plt.pause(0.05)
+    #savefig('/share/nobackup/b1033128/Walls/Animation/frame'+str(itime).zfill(6) +'.png')
     d = distance(position)
     #n = n_mat(position, d)
     #t_matrix[:,:,0] = -n[:,:,1]
