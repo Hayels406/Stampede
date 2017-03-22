@@ -18,9 +18,9 @@ plt.close()
 ###Parameters
 ###########################################################
 
-TF = 20.                       # Final time
+TF = 200.                       # Final time
 TSCREEN = 10                  # Screen update interval
-dt = 0.1                    # Time step
+dt = 0.01                    # Time step
 NP = 100                     # Number of sheep
 np.random.seed()
 
@@ -38,6 +38,7 @@ B = np.ones(NP)*0.08
 A = np.ones(NP)*2*10**3
 k = 1.2*10**5
 kappa = 2.4*10**5
+
 
 
 ###########################################################
@@ -108,7 +109,13 @@ v = np.transpose(np.array([np.cos(theta), np.sin(theta)]))
 r = np.random.rand(NP)/10 + 0.25#np.array([0.2, 0.4, 0.3])#
 t_matrix = np.zeros((NP, NP, 2))
 
-walls = [['s', 1, 0, -12], ['s', 0, 1, -12], ['s', 1, 0, 2], ['s', 0, 1, 2]]#[['c',5,5,9]]#
+w_int = str(sys.argv[1])
+if w_int == 's':
+    walls = [['s', 1, 0, -12], ['s', 0, 1, -12], ['s', 1, 0, 2], ['s', 0, 1, 2]]
+elif w_int == 'c':
+    walls = [['c',5,5,9]]
+else:
+    sys.exit('Not a valid wall')
 
 while (round(t, 3) < TF):
     print t
@@ -121,17 +128,23 @@ while (round(t, 3) < TF):
     #print np.arctan2(ytheta, xtheta)
     if t == 0.0:
         plt.figure()
-        plt.plot([-2, 12], [-2, -2], lw = 4, color = 'red')
-        plt.plot([-2, -2], [-2, 12], lw = 4, color = 'red')
-        plt.plot([-2, 12], [12, 12], lw = 4, color = 'red')
-        plt.plot([12, 12], [-2, 12], lw = 4, color = 'red')
-        #circle1=plt.Circle((walls[0][1],walls[0][2]),walls[0][3],color='r',fill = False)
-        #plt.gcf().gca().add_artist(circle1)
+        if w_int == 's':
+            plt.plot([-2, 12], [-2, -2], lw = 4, color = 'red')
+            plt.plot([-2, -2], [-2, 12], lw = 4, color = 'red')
+            plt.plot([-2, 12], [12, 12], lw = 4, color = 'red')
+            plt.plot([12, 12], [-2, 12], lw = 4, color = 'red')
+        else:
+            circle1=plt.Circle((walls[0][1],walls[0][2]),walls[0][3],color='r',fill = False, lw = 4)
+            plt.gcf().gca().add_artist(circle1)
         q = plt.quiver(x, y, xtheta, ytheta, scale = 30)#, xtheta, ytheta, scale = 30, color = 'black')
         #plt.xlim(NX/2. - 250, NX/2. + 250)
         #plt.ylim(NY/2. - 250, NY/2. + 250)
-        plt.xlim(-3., 13.)
-        plt.ylim(-3., 13.)
+        if w_int == 's':
+            plt.xlim(-3., 13.)
+            plt.ylim(-3., 13.)
+        else:
+            plt.xlim(-5., 15.)
+            plt.ylim(-5., 15.)
         plt.axes().set_aspect('equal')
     if t > 0.0:
         q.set_offsets(np.transpose([x, y]))
@@ -141,7 +154,8 @@ while (round(t, 3) < TF):
         #plt.xlim(mean_x - 20., mean_x + 20.)
         #plt.ylim(mean_y - 20., mean_y + 20.)
     plt.pause(0.05)
-    #savefig('/share/nobackup/b1033128/Walls/Animation/frame'+str(itime).zfill(6) +'.png')
+    #if itime%TSCREEN == (TSCREEN - 1):
+    #    savefig('/share/nobackup/b1033128/Walls/Animation'+str(w_int).upper()+'/frame'+str(itime).zfill(6) +'.png')
     d = distance(position)
     #n = n_mat(position, d)
     #t_matrix[:,:,0] = -n[:,:,1]
@@ -156,7 +170,10 @@ while (round(t, 3) < TF):
 
     position = position + v*dt
 
-
+    if w_int == 's':
+        print intrinsic_force[0]
+        print extrinsic_force[0]
+        print wall_force[0]
 
     t = t + dt
     itime = itime + 1

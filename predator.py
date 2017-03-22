@@ -32,7 +32,7 @@ show = False        # Show plots to screen
 itime = 0
 
 ## Simulation parameters
-a = 1.
+a = float(sys.argv[2])
 b = 0.2
 c = float(sys.argv[1])
 p = 3.
@@ -48,25 +48,11 @@ if c == 1.5:
 
 
 ## Fuctions
-def velocityPreyIndex(index, postPrey, postPred):
-    def innerSumFunc(index_j, index_k):
-        return (postPrey[index_j] - postPrey[index_k])/(((postPrey[index_j] - postPrey[index_k])**2).sum()) - a*(postPrey[index_j] - postPrey[index_k])
+def velocityPrey(posnPrey, posnPred):
+    return np.array(map(lambda j:(((posnPrey[j] - np.delete(posnPrey, j, 0))*np.transpose(np.tile(np.linalg.norm(posnPrey[j] - np.delete(posnPrey, j, 0), axis = 1)**(-2) - a, (2,1)))).sum(axis = 0)/NP + b*(posnPrey[j] - posnPred)/np.linalg.norm(posnPrey[j] - posnPred)**2)[0].tolist(), range(NP)));
 
-    innersum = np.array(map(lambda x:innerSumFunc(index, x), np.delete(range(NP), index, 0))).sum(axis = 0)
-    vel = (1./NP)*innersum + b*(postPrey[index] - postPred)/np.sqrt(((postPrey[index] - postPred)**2).sum())
-    return vel.tolist()[0];
-
-#def velocityPrey(posPrey, posPred):
-#    return np.array(map(lambda x:velocityPreyIndex(x, posPrey, posPred), range(NP)));
-
-def velocityPrey(posPrey, posPred):
-    #map(lambda j:((positionPrey[j] - np.delete(positionPrey, j, 0))*np.transpose(np.tile(np.linalg.norm(positionPrey[j] - np.delete(positionPrey, j, 0), axis = 1)**(-2) - a, (2,1))).sum(axis = 0))/NP + b*(positionPrey[j] - positionPred)/np.linalg.norm(positionPrey[j] - positionPred)**2, range(NP))
-    return np.array(map(lambda j:(((posPrey[j] - np.delete(posPrey, j, 0))*np.transpose(np.tile(np.linalg.norm(posPrey[j] - np.delete(posPrey, j, 0), axis = 1)**(-2) - a, (2,1)))).sum(axis = 0)/NP + b*(posPrey[j] - posPred)/np.linalg.norm(posPrey[j] - posPred)**2)[0].tolist(), range(NP)));
-
-
-def velocityPred(posPrey, posPred):
-    vel = (c/NP)*((posPrey - posPred)/np.transpose(np.tile(np.linalg.norm(posPrey - posPred,axis=1)**p + A,(2,1)))).sum(axis = 0)
-    return vel;
+def velocityPred(posnPrey, posnPred):
+    return (c/NP)*((posnPrey - posnPred)/np.transpose(np.tile(np.linalg.norm(posnPrey - posnPred,axis=1)**p + A,(2,1)))).sum(axis = 0);
 
 np.random.seed(0)
 positionPrey = np.random.rand(NP, 2)
@@ -78,7 +64,7 @@ if c != 0.4:
 #positionPred = np.random.rand( 1, 2)          # Setting x and y for the predator
 
 #positionPrey = np.array([[0, 0.2], [0.3, 0.1], [1., 0.8], [0.2, 0.7], [0.2, 0.1]])
-positionPred = np.array([[0., -0.]])
+positionPred = np.array([[5-5.0, 5-5.0]])
 
 while (round(t, 3) < TF):
     print t
@@ -121,12 +107,12 @@ while (round(t, 3) < TF):
         #plt.plot(meanPositionPrey[0], meanPositionPrey[1], 'bo')
         #plt.xlim(NX/2. - 250, NX/2. + 250)
         #plt.ylim(NY/2. - 250, NY/2. + 250)
-        plt.xlim(meanPositionPrey[0]-1.5, meanPositionPrey[0]+1.5)
-        plt.ylim(meanPositionPrey[1]-1.5, meanPositionPrey[1]+1.5)
+        plt.xlim(meanPositionPrey[0]-15., meanPositionPrey[0]+15.)
+        plt.ylim(meanPositionPrey[1]-15., meanPositionPrey[1]+15.)
         plt.axes().set_aspect('equal')
     if itime%2 == 0:
-        plt.xlim(meanPositionPrey[0]-1.5, meanPositionPrey[0]+1.5)
-        plt.ylim(meanPositionPrey[1]-1.5, meanPositionPrey[1]+1.5)
+        plt.xlim(meanPositionPrey[0]-15., meanPositionPrey[0]+15.)
+        plt.ylim(meanPositionPrey[1]-15., meanPositionPrey[1]+15.)
         q.set_offsets(np.transpose([x, y]))
         q.set_UVC(xtheta,ytheta)
         r.set_offsets(np.transpose([positionPred[:,0], positionPred[:,1]]))
