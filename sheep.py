@@ -20,7 +20,7 @@ plt.close()
 TF = 500.                       # Final time
 TSCREEN = 50                  # Screen update interval
 dt = 0.01                    # Time step
-NP = 400                     # Number of sheep
+NP = 100                     # Number of sheep
 np.random.seed()
 
 ## Aux parameters
@@ -55,6 +55,8 @@ kappa = 2.4*10**5
 predRadius = 0.25
 w1 = 10
 w2 = -10
+massPrey = np.ones((NP,2))*50.
+preyRadius = np.random.rand(NP)/10 + 0.25
 
 ###########################################################
 ###Functions
@@ -112,29 +114,31 @@ def f_ij(posi, posj, distij, ri, rj):
     else:
         n_ij = (posi - posj)/distij
     t_ij = np.array([-n_ij[1], n_ij[0]])
-    f = (A[0]*np.exp((r_ij - distij)/B[0]))*n_ij
+    f = (Aw[0]*np.exp((r_ij - distij)/Bw[0]))*n_ij
     return(f)
 
+def distance(pos):
+    dist = np.array(map(lambda i:map(lambda j: np.sqrt((pos[i,0]-pos[j,0])**2 + (pos[i,1]-pos[j,1])**2), range(NP)), range(NP)))
+    return(dist)
 
 ###########################################################
 ###Set Up
 ###########################################################
 np.random.seed(0)
 massPred = np.array([17])
-positionPrey = np.random.rand(NP, 2)
-posPrey = np.random.rand(NP)*2*pi
-if c != 0.4:
-    positionPrey[:,0] = (0.7+0.3*np.random.rand(NP))*np.cos(posPrey)
-    positionPrey[:,1] = (0.7+0.3*np.random.rand(NP))*np.sin(posPrey)
+#positionPrey = np.random.rand(NP, 2)
+positionPrey = np.array([[x,y] for x in np.arange(0,np.ceil(np.sqrt(NP)),1.) for y in np.arange(0,np.ceil(np.sqrt(NP)),1.)])[0:NP]#np.random.rand(NP, 2) + 7.5#np.array([[1., 5.], [6., 4.], [6., 3.5]])#
+
+#posPrey = np.random.rand(NP)*2*pi
+#if c != 0.4:#
+#    positionPrey[:,0] = (0.7+0.3*np.random.rand(NP))*np.cos(posPrey)
+#    positionPrey[:,1] = (0.7+0.3*np.random.rand(NP))*np.sin(posPrey)
        # Setting x and y for each prey np.array([[0.4, 0.6], [0.5, 0.8]])#
 #positionPred = np.random.rand( 1, 2)          # Setting x and y for the predator
 
 #positionPrey = np.array([[0, 0.2], [0.3, 0.1], [1., 0.8], [0.2, 0.7], [0.2, 0.1]])
-positionPred = np.array([[0.1, -0.1]])
+positionPred = np.array([[-5., -5.]])
 walls = [['s', 1, 0, -w1], ['s', 0, 1, -w1], ['s', 1, 0, -w2], ['s', 0, 1, -w2]]#[['c',5,5,9]]#
-
-massPrey = np.ones((NP,2))*50.
-preyRadius = np.random.rand(NP)/10 + 0.25
 
 vPredOld = np.zeros((int(TF/dt) + 1,2))
 vPreyOld = np.zeros((int(TF/dt) + 1,NP,2))
@@ -145,44 +149,25 @@ vPreyOld = np.zeros((int(TF/dt) + 1,NP,2))
 while (round(t, 3) < TF):
     print t
     #Update positionPrey
-    #dpreydt = velocityPrey(positionPrey, positionPred)
-    #dpreddt = velocityPred(positionPrey, positionPred)
-
+    d = distance(positionPrey)
     positionPreyOld = positionPrey
     positionPredOld = positionPred
 
 
-
     #Euler method
-    #positionPrey = positionPrey + dpreydt*dt
-    #positionPred = positionPred + dpreddt*dt
-
-    #Runga-Kutta method
-    k1 = velocityPrey(positionPrey, positionPred)
-    #k2 = velocityPrey(positionPrey + (dt/2)*k1, positionPred)
-    #k3 = velocityPrey(positionPrey + (dt/2)*k2, positionPred)
-    #k4 = velocityPrey(positionPrey + dt*k3, positionPred)
-    #positionPrey = positionPrey + (dt/6)*(k1 + 2*k2 + 2*k3 + k4)
-
-    kPred1 = velocityPred(positionPrey, positionPred)
-    #kPred2 = velocityPred(positionPrey, positionPred + (dt/2)*kPred1)
-    #kPred3 = velocityPred(positionPrey, positionPred + (dt/2)*kPred2)
-    #kPred4 = velocityPred(positionPrey, positionPred + dt*kPred3)
-    #positionPred = positionPred + (dt/6)*(kPred1 + 2*kPred2 + 2*kPred3 + kPred4)
-
+    vPrey = velocityPrey(positionPrey, positionPred)
+    vPred = velocityPred(positionPrey, positionPred)
     meanPositionPrey = positionPrey.mean(axis = 0)
+    vPreyOld[itime+1] = vPrey
+    vPredOld[itime+1] = vPred
+    accPred = (vPred - vPredOld[itime])/tau
+    accPrey = (vPrey - vPreyOld[itime])/tau
 
-    vPreyOld[itime+1] = k1
-    vPredOld[itime+1] = kPred1
-
-    accPred = (kPred1 - vPredOld[itime])/tau
-    accPrey = (k1 - vPreyOld[itime])/tau
-    #print np.array(map(lambda w:f_iw(positionPred[0], predRadius, w), walls)).sum(axis = 0)
     forcePred = massPred*accPred + np.array(map(lambda w:f_iw(positionPred[0], predRadius, w), walls)).sum(axis = 0)
-    forcePrey = massPrey*accPrey + map(lambda i:np.array(map(lambda w:f_iw(positionPrey[i], preyRadius[i], w), walls)).sum(axis = 0), range(NP))
+    forcePrey = massPrey*accPrey + map(lambda i:np.delete(map(lambda j:f_ij(positionPrey[i], positionPrey[j], d[i,j], preyRadius[i], preyRadius[j]), range(NP)), i, 0).sum(axis = 0),range(NP)) + map(lambda i:np.array(map(lambda w:f_iw(positionPrey[i], preyRadius[i], w), walls)).sum(axis = 0), range(NP))
 
-    positionPred = positionPred + (kPred1 + (forcePred/massPred)*dt)*dt
-    positionPrey = positionPrey + (k1 + (forcePrey/massPrey)*dt)*dt
+    positionPred = positionPred + (vPred + (forcePred/massPred)*dt)*dt
+    positionPrey = positionPrey + (vPrey + (forcePrey/massPrey)*dt)*dt
 
     # Ploting (Delete later)
     x = positionPrey[:, 0]
@@ -197,10 +182,10 @@ while (round(t, 3) < TF):
         plt.plot([w2, w2], [w2, w1], lw = 4, color = 'red')
         plt.plot([w2, w1], [w1, w1], lw = 4, color = 'red')
         plt.plot([w1, w1], [w2, w1], lw = 4, color = 'red')
-        #plt.plot([w2 + 0.25, w1 - 0.25], [w2 + 0.25, w2 + 0.25], lw = 1, color = 'blue')
-        #plt.plot([w2 + 0.25, w2 + 0.25], [w2 + 0.25, w1 - 0.25], lw = 1, color = 'blue')
-        #plt.plot([w2 + 0.25, w1 - 0.25], [w1 - 0.25, w1 - 0.25], lw = 1, color = 'blue')
-        #plt.plot([w1 - 0.25, w1 - 0.25], [w2 + 0.25, w1 - 0.25], lw = 1, color = 'blue')
+        plt.plot([w2 + 0.25, w1 - 0.25], [w2 + 0.25, w2 + 0.25], lw = 1, color = 'blue')
+        plt.plot([w2 + 0.25, w2 + 0.25], [w2 + 0.25, w1 - 0.25], lw = 1, color = 'blue')
+        plt.plot([w2 + 0.25, w1 - 0.25], [w1 - 0.25, w1 - 0.25], lw = 1, color = 'blue')
+        plt.plot([w1 - 0.25, w1 - 0.25], [w2 + 0.25, w1 - 0.25], lw = 1, color = 'blue')
         q = plt.quiver(x, y, xtheta, ytheta, scale = 30)#, xtheta, ytheta, scale = 30, color = 'black')
         r = plt.quiver(positionPred[:,0], positionPred[:,1], np.cos(thetaPred), np.sin(thetaPred), color = 'red', scale = 30)
         #plt.plot(meanPositionPrey[0], meanPositionPrey[1], 'bo')
