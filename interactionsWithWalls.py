@@ -125,7 +125,6 @@ while (round(t, 3) < TF):
     theta = np.arctan2(v[:, 1], v[:, 0])
     xtheta = np.cos(theta)
     ytheta = np.sin(theta)
-    #print np.arctan2(ytheta, xtheta)
     if t == 0.0:
         plt.figure()
         if w_int == 's':
@@ -136,9 +135,7 @@ while (round(t, 3) < TF):
         else:
             circle1=plt.Circle((walls[0][1],walls[0][2]),walls[0][3],color='r',fill = False, lw = 4)
             plt.gcf().gca().add_artist(circle1)
-        q = plt.quiver(x, y, xtheta, ytheta, scale = 30)#, xtheta, ytheta, scale = 30, color = 'black')
-        #plt.xlim(NX/2. - 250, NX/2. + 250)
-        #plt.ylim(NY/2. - 250, NY/2. + 250)
+        q = plt.quiver(x, y, xtheta, ytheta, scale = 30)
         if w_int == 's':
             plt.xlim(-3., 13.)
             plt.ylim(-3., 13.)
@@ -149,17 +146,11 @@ while (round(t, 3) < TF):
     if t > 0.0:
         q.set_offsets(np.transpose([x, y]))
         q.set_UVC(xtheta,ytheta)
-        #mean_x = x.mean()
-        #mean_y = y.mean()
-        #plt.xlim(mean_x - 20., mean_x + 20.)
-        #plt.ylim(mean_y - 20., mean_y + 20.)
     plt.pause(0.05)
     #if itime%TSCREEN == (TSCREEN - 1):
     #    savefig('/share/nobackup/b1033128/Walls/Animation'+str(w_int).upper()+'/frame'+str(itime).zfill(6) +'.png')
+
     d = distance(position)
-    #n = n_mat(position, d)
-    #t_matrix[:,:,0] = -n[:,:,1]
-    #t_matrix[:,:,1] =  n[:,:,0]
 
     intrinsic_force = np.transpose(np.tile(mass, (2,1)))*np.array(map(lambda x:(v_0[x]*e_0[x] - v[x])/tau, range(NP)))
     extrinsic_force = map(lambda i:np.delete(map(lambda j:f_ij(position[i], position[j], d[i,j], r[i], r[j]), range(NP)), i, 0).sum(axis = 0),range(NP))
