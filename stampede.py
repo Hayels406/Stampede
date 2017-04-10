@@ -301,7 +301,7 @@ for l in xrange(iterations):
             #mean_y = y.mean()
             #plt.xlim(mean_x - 20., mean_x + 20.)
             #plt.ylim(mean_y - 20., mean_y + 20.)
-	savefig('/data/b1033128/Stampede/Animation/frame'+str(itime).zfill(6) +'.png') 
+	    savefig('/share/nobackup/b1033128/Stampede/frame'+str(itime).zfill(6) +'.png')
         #plt.pause(0.05)
 
         t = t + dt;             # updating time
